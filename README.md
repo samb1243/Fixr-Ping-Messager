@@ -13,7 +13,8 @@ sites too.
    CSS selector or the whole page text.
 3. The result is compared to the last-seen snapshot in `state/`.
 4. If it changed, it pushes a notification via [ntfy.sh](https://ntfy.sh) to your
-   phone — naming the new events when detectable — with a tap-to-open link.
+   phone — naming the new events when detectable — with a tap-to-open link, and
+   (if `open_browser_on_change` is on) opens the page in your default browser.
 
 ## One-time setup
 
@@ -52,6 +53,7 @@ CLI share a single-instance guard).
 {
   "ntfy": { "server": "https://ntfy.sh", "topic": "fixr-watch-50e9aec6" },
   "interval_seconds": 1,
+  "open_browser_on_change": true,
   "pages": [
     {
       "name": "Timepiece (Fixr organiser)",
@@ -68,6 +70,9 @@ CLI share a single-instance guard).
   (e.g. `1`) hammer the site and risk being rate-limited or IP-blocked; `3`–`5`
   is plenty for events posted by humans. The loop automatically backs off if the
   site returns "too many requests".
+- `open_browser_on_change` — when `true`, a change also opens that page in your
+  default browser (a new tab), so you land straight on it. Set `false` for
+  phone-only notifications.
 
 ## Adding more pages
 

@@ -23,6 +23,7 @@ import re
 import sys
 import threading
 import time
+import webbrowser
 from datetime import datetime
 
 import requests
@@ -175,7 +176,7 @@ def save_state(sf, digest, items, now):
     )
 
 
-def check_page(page_cfg, browser, ntfy, log_nochange=True):
+def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False):
     """Check one page. Returns one of: 'baseline', 'nochange', 'changed'."""
     name = page_cfg["name"]
     signature, items = fetch_page_content(page_cfg, browser)
@@ -206,8 +207,17 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True):
         message = "The page content changed."
 
     print(f"[{now}] {name}: CHANGED -> {message}")
-    send_push(ntfy["server"], ntfy["topic"], title=f"Fixr Ping: {name}",
-              message=message, url=page_cfg["url"], priority="high")
+    if open_browser:
+        try:
+            webbrowser.open(page_cfg["url"], new=2)  # new=2 -> new browser tab
+            print(f"  -> opened {page_cfg['url']} in your browser")
+        except Exception as e:
+            print(f"  ! could not open browser: {e}")
+    try:
+        send_push(ntfy["server"], ntfy["topic"], title=f"Fixr Ping: {name}",
+                  message=message, url=page_cfg["url"], priority="high")
+    except Exception as e:
+        print(f"  ! could not send push: {e}")
     save_state(sf, digest, items, now)
     return "changed"
 
@@ -216,6 +226,7 @@ def run_once(cfg, log_nochange=True):
     """Check every enabled page once. Returns the number of errors."""
     STATE_DIR.mkdir(exist_ok=True)
     ntfy = cfg["ntfy"]
+    open_browser = cfg.get("open_browser_on_change", False)
     pages = [p for p in cfg["pages"] if p.get("enabled", True)]
     errors = 0
 
@@ -229,7 +240,8 @@ def run_once(cfg, log_nochange=True):
     try:
         for page_cfg in pages:
             try:
-                check_page(page_cfg, browser, ntfy, log_nochange=log_nochange)
+                check_page(page_cfg, browser, ntfy, log_nochange=log_nochange,
+                           open_browser=open_browser)
             except Exception as e:
                 errors += 1
                 print(f"  ! Error checking '{page_cfg['name']}': {e}",

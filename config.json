@@ -4,6 +4,7 @@
     "topic": "fixr-watch-50e9aec6"
   },
   "interval_seconds": 1,
+  "open_browser_on_change": true,
   "pages": [
     {
       "name": "Timepiece (Fixr organiser)",
@@ -27,11 +28,18 @@
       "enabled": true
     },
     {
+      "name": "Sam Party (Fixr organiser)",
+      "url": "https://fixr.co/organiser/sam-party?lang=en-US",
+      "mode": "fixr_organiser",
+      "selector": null,
+      "enabled": true
+    },
+    {
       "name": "Hacker News newest (TEST)",
       "url": "https://news.ycombinator.com/newest",
       "mode": "hn_newest",
       "selector": null,
-      "enabled": true
+      "enabled": false
     }
   ]
 }
