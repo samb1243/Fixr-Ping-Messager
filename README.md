@@ -13,8 +13,10 @@ sites too.
    CSS selector or the whole page text.
 3. The result is compared to the last-seen snapshot in `state/`.
 4. If it changed, it pushes a notification via [ntfy.sh](https://ntfy.sh) to your
-   phone — naming the new events when detectable — with a tap-to-open link, and
-   (if `open_browser_on_change` is on) opens the page in your default browser.
+   phone naming the new events, and (if `open_browser_on_change` is on) opens
+   **each new event's own ticket page** directly in your browser — so you land
+   straight on the buy page, not the listing. The phone notification links there
+   too.
 
 ## One-time setup
 
@@ -70,9 +72,9 @@ CLI share a single-instance guard).
   (e.g. `1`) hammer the site and risk being rate-limited or IP-blocked; `3`–`5`
   is plenty for events posted by humans. The loop automatically backs off if the
   site returns "too many requests".
-- `open_browser_on_change` — when `true`, a change also opens that page in your
-  default browser (a new tab), so you land straight on it. Set `false` for
-  phone-only notifications.
+- `open_browser_on_change` — when `true`, a change opens each new Fixr event's
+  ticket page in your browser (a new tab each). If many appear at once (>8) it
+  opens the listing page instead. Set `false` for phone-only notifications.
 
 ## Adding more pages
 

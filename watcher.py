@@ -58,24 +58,45 @@ def slug(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60]
 
 
+def _format_event_time(ev):
+    """Render a Fixr event's start time. openTime is a Unix timestamp."""
+    t = (ev.get("openTime") or ev.get("open_time")
+         or ev.get("startTime") or ev.get("start_time") or ev.get("date"))
+    if isinstance(t, (int, float)):
+        try:
+            return datetime.fromtimestamp(t).strftime("%a %d %b %H:%M")
+        except (OSError, ValueError, OverflowError):
+            return str(t)
+    return t or ""
+
+
 def fixr_event_label(ev):
     """Best-effort human label for one Fixr event object."""
     if not isinstance(ev, dict):
         return str(ev)
     name = ev.get("name") or ev.get("title") or "Event"
-    date = (
-        ev.get("openTime") or ev.get("open_time")
-        or ev.get("startTime") or ev.get("start_time")
-        or ev.get("date") or ""
-    )
-    return f"{name} @ {date}".strip(" @")
+    return f"{name} @ {_format_event_time(ev)}".strip(" @")
+
+
+def fixr_event_url(ev):
+    """The direct ticket page for a Fixr event (what we open in the browser)."""
+    if not isinstance(ev, dict):
+        return None
+    if ev.get("shareUrl"):
+        return ev["shareUrl"]
+    if ev.get("routingPart"):
+        return f"https://fixr.co/event/{ev['routingPart']}"
+    if ev.get("id"):
+        return f"https://fixr.co/event/{ev['id']}"
+    return None
 
 
 def fixr_signature(data):
     """Build (signature, items) from a Fixr organiser 'data' object.
 
     signature changes whenever the event payload changes; items are
-    human-readable labels for the notification.
+    {'label', 'url'} dicts — the label for the notification, the url (the
+    event's own ticket page) for opening in the browser.
     """
     events = data.get("data", [])
     count = data.get("count", len(events))
@@ -85,7 +106,10 @@ def fixr_signature(data):
             json.dumps(e, sort_keys=True, ensure_ascii=False) for e in events),
     }
     signature = json.dumps(sig_obj, ensure_ascii=False)
-    items = sorted(fixr_event_label(e) for e in events) if events else []
+    items = sorted(
+        ({"label": fixr_event_label(e), "url": fixr_event_url(e)}
+         for e in events),
+        key=lambda it: it["label"]) if events else []
     return signature, items
 
 
@@ -176,6 +200,15 @@ def save_state(sf, digest, items, now):
     )
 
 
+def _item_label(it):
+    """An item is either {'label','url'} (Fixr) or a plain string (other)."""
+    return it["label"] if isinstance(it, dict) else str(it)
+
+
+def _item_url(it):
+    return it.get("url") if isinstance(it, dict) else None
+
+
 def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False):
     """Check one page. Returns one of: 'baseline', 'nochange', 'changed'."""
     name = page_cfg["name"]
@@ -198,24 +231,38 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False):
 
     added = []
     if items is not None and prev.get("items") is not None:
-        added = [x for x in items if x not in set(prev["items"])]
+        prev_labels = {_item_label(it) for it in prev["items"]}
+        added = [it for it in items if _item_label(it) not in prev_labels]
+
     if added:
-        message = "New: " + " | ".join(added[:5])
-        if len(added) > 5:
-            message += f" (+{len(added) - 5} more)"
+        labels = [_item_label(it) for it in added]
+        message = "New: " + " | ".join(labels[:5])
+        if len(labels) > 5:
+            message += f" (+{len(labels) - 5} more)"
     else:
         message = "The page content changed."
 
     print(f"[{now}] {name}: CHANGED -> {message}")
+
+    # New event pages to open (and where the phone notification should link).
+    new_urls = [u for u in (_item_url(it) for it in added) if u]
+    if new_urls and len(new_urls) <= 8:
+        open_targets = new_urls
+    else:
+        # No specific links, or too many at once -> just open the listing page.
+        open_targets = [page_cfg["url"]]
+    click_url = new_urls[0] if new_urls else page_cfg["url"]
+
     if open_browser:
-        try:
-            webbrowser.open(page_cfg["url"], new=2)  # new=2 -> new browser tab
-            print(f"  -> opened {page_cfg['url']} in your browser")
-        except Exception as e:
-            print(f"  ! could not open browser: {e}")
+        for target in open_targets:
+            try:
+                webbrowser.open(target, new=2)  # new=2 -> new browser tab
+                print(f"  -> opened {target} in your browser")
+            except Exception as e:
+                print(f"  ! could not open browser: {e}")
     try:
         send_push(ntfy["server"], ntfy["topic"], title=f"Fixr Ping: {name}",
-                  message=message, url=page_cfg["url"], priority="high")
+                  message=message, url=click_url, priority="high")
     except Exception as e:
         print(f"  ! could not send push: {e}")
     save_state(sf, digest, items, now)
