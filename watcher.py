@@ -79,16 +79,22 @@ def fixr_event_label(ev):
 
 
 def fixr_event_url(ev):
-    """The direct ticket page for a Fixr event (what we open in the browser)."""
+    """Direct link to a Fixr event's ticket-selection screen.
+
+    Fixr serves ticket selection at <event-url>/tickets (the event page's own
+    'TICKETS' button links there), so opening that lands straight on it.
+    """
     if not isinstance(ev, dict):
         return None
     if ev.get("shareUrl"):
-        return ev["shareUrl"]
-    if ev.get("routingPart"):
-        return f"https://fixr.co/event/{ev['routingPart']}"
-    if ev.get("id"):
-        return f"https://fixr.co/event/{ev['id']}"
-    return None
+        base = ev["shareUrl"]
+    elif ev.get("routingPart"):
+        base = f"https://fixr.co/event/{ev['routingPart']}"
+    elif ev.get("id"):
+        base = f"https://fixr.co/event/{ev['id']}"
+    else:
+        return None
+    return base.rstrip("/") + "/tickets"
 
 
 def fixr_signature(data):

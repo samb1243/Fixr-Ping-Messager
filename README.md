@@ -14,9 +14,9 @@ sites too.
 3. The result is compared to the last-seen snapshot in `state/`.
 4. If it changed, it pushes a notification via [ntfy.sh](https://ntfy.sh) to your
    phone naming the new events, and (if `open_browser_on_change` is on) opens
-   **each new event's own ticket page** directly in your browser — so you land
-   straight on the buy page, not the listing. The phone notification links there
-   too.
+   **each new event's ticket-selection screen** (`/event/.../tickets`) directly
+   in your browser — so you land straight where you pick tickets, not on the
+   listing. The phone notification links there too.
 
 ## One-time setup
 
