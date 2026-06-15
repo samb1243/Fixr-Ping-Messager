@@ -1,0 +1,7 @@
+state/
+discovery/
+watcher.log
+__pycache__/
+*.pyc
+.venv/
+venv/

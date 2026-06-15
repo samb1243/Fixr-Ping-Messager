@@ -1,0 +1,37 @@
+{
+  "ntfy": {
+    "server": "https://ntfy.sh",
+    "topic": "fixr-watch-50e9aec6"
+  },
+  "interval_seconds": 1,
+  "pages": [
+    {
+      "name": "Timepiece (Fixr organiser)",
+      "url": "https://fixr.co/organiser/timepiece?lang=en-US",
+      "mode": "fixr_organiser",
+      "selector": null,
+      "enabled": true
+    },
+    {
+      "name": "4Play Events Ltd (Fixr organiser)",
+      "url": "https://fixr.co/organiser/4playeventsltd?lang=en-US",
+      "mode": "fixr_organiser",
+      "selector": null,
+      "enabled": true
+    },
+    {
+      "name": "Fever and Boutique (Fixr venue)",
+      "url": "https://fixr.co/venue/2379?lang=en-US",
+      "mode": "fixr_venue",
+      "selector": null,
+      "enabled": true
+    },
+    {
+      "name": "Hacker News newest (TEST)",
+      "url": "https://news.ycombinator.com/newest",
+      "mode": "hn_newest",
+      "selector": null,
+      "enabled": true
+    }
+  ]
+}
