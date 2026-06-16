@@ -32,7 +32,7 @@
       "url": "https://fixr.co/organiser/sam-party?lang=en-US",
       "mode": "fixr_organiser",
       "selector": null,
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "Hacker News newest (TEST)",
