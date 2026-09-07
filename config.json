@@ -18,14 +18,14 @@
       "url": "https://fixr.co/organiser/4playeventsltd?lang=en-US",
       "mode": "fixr_organiser",
       "selector": null,
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "Fever and Boutique (Fixr venue)",
       "url": "https://fixr.co/venue/2379?lang=en-US",
       "mode": "fixr_venue",
       "selector": null,
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "Sam Party (Fixr organiser)",
