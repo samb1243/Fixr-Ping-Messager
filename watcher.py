@@ -54,7 +54,7 @@ _NEXT_DATA_RE = re.compile(r'id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
 
 # Browsers to open new events in (config key "browsers"). Each is looked up in
 # the usual install locations; any that aren't installed are skipped.
-DEFAULT_BROWSERS = ["chrome", "operagx"]
+DEFAULT_BROWSERS = ["chrome"]
 _BROWSER_CANDIDATES = {
     "chrome": {
         "win": [r"Google\Chrome\Application\chrome.exe"],

@@ -56,7 +56,7 @@ CLI share a single-instance guard).
   "ntfy": { "server": "https://ntfy.sh", "topic": "fixr-watch-50e9aec6" },
   "interval_seconds": 1,
   "open_browser_on_change": true,
-  "browsers": ["chrome", "opera gx"],
+  "browsers": ["chrome"],
   "pages": [
     {
       "name": "Timepiece (Fixr organiser)",
@@ -77,8 +77,8 @@ CLI share a single-instance guard).
   ticket page in your browser (a new tab each). If many appear at once (>8) it
   opens the listing page instead. Set `false` for phone-only notifications.
 - `browsers` — which browsers to open new events in. Defaults to
-  `["chrome", "opera gx"]`, so each new event opens in **both** Google Chrome and
-  Opera GX at once. `"edge"` is also supported. Any that aren't installed are skipped; if none are
+  `["chrome"]`. You can list more to open each event in several at once
+  (`"edge"` and `"opera gx"` are also supported). Any that aren't installed are skipped; if none are
   found it falls back to your default browser. You can also list a full path to
   a browser `.exe`.
 
