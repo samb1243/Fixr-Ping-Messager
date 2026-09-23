@@ -109,6 +109,12 @@ Every step is written to the activity feed. The button/label matching is a
 best guess at Fixr's page, so if it does the wrong thing, send the activity
 feed lines so it can be fixed.
 
+**Testing it:** click **Test auto-reserve** in the app (or run
+`python watcher.py --test-reserve "Thursday Indie Night"`). It finds that event
+on the Timepiece page, sends the phone ping and runs auto-reserve on it as if it
+had just been posted. This puts a real ticket in your basket; if you don't pay,
+it's released when the basket timer runs out.
+
 Settings (`auto_reserve` in `config.json`): `preferred_start_times` (24h, in the
 order to try), `then_try_later_slots`, `wait_for_tickets_minutes`,
 `reserve_timeout_seconds`, and `enabled` to switch it all off.

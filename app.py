@@ -10,7 +10,7 @@ import queue
 import sys
 import threading
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext, messagebox, simpledialog
 
 import watcher
 
@@ -112,6 +112,9 @@ class App(tk.Tk):
                    ).pack(side="right", ipadx=8, ipady=6)
         ttk.Button(btns, text="Log in to Fixr", command=self.fixr_login
                    ).pack(side="right", padx=(0, 8), ipadx=8, ipady=6)
+        ttk.Button(btns, text="Test auto-reserve",
+                   command=self.test_reserve
+                   ).pack(side="right", padx=(0, 8), ipadx=8, ipady=6)
 
         ttk.Label(self, text="Watching", font=("Segoe UI", 9, "bold")).pack(
             anchor="w")
@@ -209,6 +212,28 @@ class App(tk.Tk):
                                  f"Could not read config.json:\n\n{e}")
             return
         watcher.reserve.RESERVER.open_login(cfg)
+
+    def test_reserve(self):
+        try:
+            cfg = watcher.load_config()
+        except Exception as e:
+            messagebox.showerror("Config error",
+                                 f"Could not read config.json:\n\n{e}")
+            return
+        query = simpledialog.askstring(
+            "Test auto-reserve",
+            "Run auto-reserve now on the event named:\n\n"
+            "(this really puts a ticket in your basket)",
+            initialvalue="Thursday Indie Night", parent=self)
+        if not query:
+            return
+
+        def run():
+            try:
+                watcher.test_reserve(cfg, query)
+            except Exception as e:
+                print(f"  ! test failed: {e}")
+        threading.Thread(target=run, daemon=True).start()
 
     def test_browsers(self):
         try:

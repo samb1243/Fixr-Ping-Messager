@@ -211,6 +211,41 @@ def test_browsers(cfg):
     open_in_browsers(TEST_URL, browsers)
 
 
+def test_reserve(cfg, query):
+    """Pretend an event matching `query` was just posted on an auto-reserve
+    page: send the phone ping and run auto-reserve on it for real."""
+    words = query.lower().split()
+    pages = [p for p in cfg["pages"] if p.get("auto_reserve")]
+    if not pages:
+        print("No pages have \"auto_reserve\": true in config.json.")
+        return False
+    for page_cfg in pages:
+        _, items = fetch_page_content(page_cfg, None)
+        items = items or []
+        match = [it for it in items
+                 if all(w in _item_label(it).lower() for w in words)]
+        if not match:
+            continue
+        it = match[0]
+        label, url = _item_label(it), _item_url(it)
+        print(f"[test] Pretending '{label}' was just posted on "
+              f"{page_cfg['name']}.")
+        try:
+            send_push(cfg["ntfy"]["server"], cfg["ntfy"]["topic"],
+                      title=f"TEST Fixr Ping: {page_cfg['name']}",
+                      message=f"New: {label}", url=url, priority="high")
+        except Exception as e:
+            print(f"  ! could not send push: {e}")
+        reserve.RESERVER.reserve(url, label, cfg, _reserve_notifier(cfg["ntfy"]))
+        return True
+    print(f"[test] No event matching '{query}'. Events found:")
+    for page_cfg in pages:
+        _, items = fetch_page_content(page_cfg, None)
+        for it in items or []:
+            print(f"   - {_item_label(it)}")
+    return False
+
+
 def load_config():
     return json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
 
@@ -575,11 +610,19 @@ def main():
                         help="keep running, checking every interval_seconds")
     parser.add_argument("--test-browsers", action="store_true",
                         help="open a test page in every configured browser")
+    parser.add_argument("--test-reserve", metavar="EVENT",
+                        help="run auto-reserve now on the event whose name "
+                             "contains EVENT, e.g. \"Thursday Indie Night\"")
     args = parser.parse_args()
 
     cfg = load_config()
     if args.test_browsers:
         test_browsers(cfg)
+    elif args.test_reserve:
+        if test_reserve(cfg, args.test_reserve):
+            reserve.RESERVER.jobs.join()
+            input("Done. Press Enter to close (pay in the Chrome window "
+                  "first if a ticket was reserved)... ")
     elif args.loop:
         run_loop(cfg)
     else:

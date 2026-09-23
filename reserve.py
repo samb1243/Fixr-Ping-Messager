@@ -258,6 +258,8 @@ class Reserver:
                     self._reserve(*job[1:])
             except Exception as e:
                 print(f"[reserve] ! error: {e}")
+            finally:
+                self.jobs.task_done()
 
     def _page(self, cfg):
         s = settings(cfg)
