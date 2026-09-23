@@ -20,6 +20,8 @@ import json
 import os
 import pathlib
 import re
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -48,6 +50,66 @@ SESSION.headers.update(BROWSER_HEADERS)
 
 HEARTBEAT_SECONDS = 300  # in --loop mode, log "still alive" at most this often
 _NEXT_DATA_RE = re.compile(r'id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
+
+
+# Browsers to open new events in (config key "browsers"). Each is looked up in
+# the usual install locations; any that aren't installed are skipped.
+DEFAULT_BROWSERS = ["chrome", "edge"]
+_BROWSER_CANDIDATES = {
+    "chrome": {
+        "win": [r"Google\Chrome\Application\chrome.exe"],
+        "mac": ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"],
+        "path": ["google-chrome", "google-chrome-stable", "chrome", "chromium"],
+    },
+    "edge": {
+        "win": [r"Microsoft\Edge\Application\msedge.exe"],
+        "mac": ["/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"],
+        "path": ["msedge", "microsoft-edge", "microsoft-edge-stable"],
+    },
+}
+
+
+def find_browser(name):
+    """Return the executable path for a browser name, or None if not found."""
+    cands = _BROWSER_CANDIDATES.get(name.lower())
+    if cands is None:
+        # Not a known name -- treat it as a path or command on PATH.
+        return name if os.path.isfile(name) else shutil.which(name)
+    if sys.platform == "win32":
+        for env in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"):
+            base = os.environ.get(env)
+            for rel in cands["win"]:
+                if base and os.path.isfile(os.path.join(base, rel)):
+                    return os.path.join(base, rel)
+    elif sys.platform == "darwin":
+        for path in cands["mac"]:
+            if os.path.isfile(path):
+                return path
+    for cmd in cands["path"]:
+        found = shutil.which(cmd)
+        if found:
+            return found
+    return None
+
+
+def open_in_browsers(url, browsers):
+    """Open url in each configured browser; fall back to the system default."""
+    opened = False
+    for name in browsers:
+        exe = find_browser(name)
+        if not exe:
+            print(f"  ! {name} not found, skipping")
+            continue
+        try:
+            subprocess.Popen([exe, url], stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+            print(f"  -> opened {url} in {name}")
+            opened = True
+        except Exception as e:
+            print(f"  ! could not open {name}: {e}")
+    if not opened:
+        webbrowser.open(url, new=2)  # new=2 -> new browser tab
+        print(f"  -> opened {url} in your default browser")
 
 
 def load_config():
@@ -215,7 +277,8 @@ def _item_url(it):
     return it.get("url") if isinstance(it, dict) else None
 
 
-def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False):
+def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
+               browsers=DEFAULT_BROWSERS):
     """Check one page. Returns one of: 'baseline', 'nochange', 'changed'."""
     name = page_cfg["name"]
     signature, items = fetch_page_content(page_cfg, browser)
@@ -262,8 +325,7 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False):
     if open_browser:
         for target in open_targets:
             try:
-                webbrowser.open(target, new=2)  # new=2 -> new browser tab
-                print(f"  -> opened {target} in your browser")
+                open_in_browsers(target, browsers)
             except Exception as e:
                 print(f"  ! could not open browser: {e}")
     try:
@@ -280,6 +342,7 @@ def run_once(cfg, log_nochange=True):
     STATE_DIR.mkdir(exist_ok=True)
     ntfy = cfg["ntfy"]
     open_browser = cfg.get("open_browser_on_change", False)
+    browsers = cfg.get("browsers", DEFAULT_BROWSERS)
     pages = [p for p in cfg["pages"] if p.get("enabled", True)]
     errors = 0
 
@@ -294,7 +357,7 @@ def run_once(cfg, log_nochange=True):
         for page_cfg in pages:
             try:
                 check_page(page_cfg, browser, ntfy, log_nochange=log_nochange,
-                           open_browser=open_browser)
+                           open_browser=open_browser, browsers=browsers)
             except Exception as e:
                 errors += 1
                 print(f"  ! Error checking '{page_cfg['name']}': {e}",
