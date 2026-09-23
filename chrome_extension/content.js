@@ -20,7 +20,9 @@
   const REMOVE_BTN = /^\s*[-−–]\s*$|decrease|decrement|remove one|minus/i;
   const RESERVE_BTN = /reserve|checkout|check out|continue|get tickets|book|buy|next|proceed/i;
   const SUCCESS_URL = /checkout|basket|cart|payment|order/i;
-  const SUCCESS_TEXT = /reserved|held for|expires? in|time (left|remaining)|complete your (order|purchase|booking)|pay now|payment details|your basket|order summary/i;
+  // Fixr's reserved page: a "00:04:30" countdown, "Continue to payment",
+  // "Ticket protection".
+  const SUCCESS_TEXT = /\b\d{2}:\d{2}:\d{2}\b|continue to payment|ticket protection|reserved|held for|expires? in|time (left|remaining)|complete your (order|purchase|booking)|pay now|payment details|your basket|order summary/i;
   const FAIL_TEXT = /sold out|no longer available|not available|unavailable|something went wrong|try again|couldn'?t|could not|limit reached|error/i;
   const SOLD_OUT = /sold out|unavailable|not available|off sale/i;
 
