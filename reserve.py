@@ -18,6 +18,9 @@ NOTE: this was written without being able to see Fixr's ticket page, so the
 button/label matching below is a best guess -- the activity feed logs each
 step so it can be fixed up against the real site.
 """
+import base64
+import http.server
+import json
 import pathlib
 import queue
 import re
@@ -40,6 +43,12 @@ DEFAULTS = {
     # Seconds to wait for a reservation to go through before calling it failed.
     "reserve_timeout_seconds": 15,
     "headless": False,
+    # false: reserve in your normal Chrome via the Fixr Auto-Reserve extension
+    #        (chrome_extension/ folder). true: in a separate Chrome window the
+    #        app controls itself.
+    "use_own_window": False,
+    # Port the extension sends its progress to, for the activity feed.
+    "log_port": 8787,
 }
 
 # e.g. "10:00pm - 10:30pm", "10-10:30PM", "22:00 – 22:30", "9.30pm to 10pm"
@@ -214,6 +223,67 @@ def _row_quantity(row):
     # A lone number between the -/+ buttons, e.g. "- 1 +".
     m = re.search(r"(?:^|\n)\s*(\d{1,2})\s*(?:\n|$)", text)
     return int(m.group(1)) if m else None
+
+
+# ------------------------------------------------------ extension (normal Chrome)
+_log_server = None
+
+
+def start_log_server(port):
+    """Show the extension's progress messages in the activity feed."""
+    global _log_server
+    if _log_server is not None:
+        return
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            text = self.rfile.read(n).decode("utf-8", "replace")
+            print(f"[reserve] {text}")
+            self.send_response(204)
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass  # no per-request noise
+
+    try:
+        _log_server = http.server.ThreadingHTTPServer(("127.0.0.1", port),
+                                                      Handler)
+    except OSError as e:
+        print(f"[reserve] ! can't listen for extension progress on port "
+              f"{port}: {e}")
+        return
+    threading.Thread(target=_log_server.serve_forever, daemon=True).start()
+
+
+def extension_url(url, label, cfg):
+    """The ticket URL with the settings the extension needs tacked on."""
+    s = settings(cfg)
+    payload = {
+        "label": label,
+        "preferred_start_times": s["preferred_start_times"],
+        "then_try_later_slots": s["then_try_later_slots"],
+        "wait_for_tickets_minutes": s["wait_for_tickets_minutes"],
+        "reserve_timeout_seconds": s["reserve_timeout_seconds"],
+        "log_port": s["log_port"],
+        "ntfy": cfg.get("ntfy"),
+    }
+    blob = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
+    return url.split("#")[0] + "#fixr-autoreserve=" + blob.rstrip("=")
+
+
+def start(url, label, cfg, notify, open_url):
+    """Kick off auto-reserve for one event.
+
+    open_url(url) opens a URL in the user's normal Chrome."""
+    s = settings(cfg)
+    if s["use_own_window"]:
+        RESERVER.reserve(url, label, cfg, notify)
+        return
+    start_log_server(s["log_port"])
+    print(f"[reserve] {label}: opening in Chrome - the Fixr Auto-Reserve "
+          "extension takes it from here.")
+    open_url(extension_url(url, label, cfg))
 
 
 # ------------------------------------------------------------- the reserver

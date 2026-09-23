@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Fixr Auto-Reserve",
+  "version": "1.0",
+  "description": "Works with Fixr Ping Messager: when it opens a new event, puts one ticket in your Fixr basket.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://ntfy.sh/*", "http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://fixr.co/*", "https://*.fixr.co/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

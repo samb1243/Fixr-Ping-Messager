@@ -236,7 +236,8 @@ def test_reserve(cfg, query):
                       message=f"New: {label}", url=url, priority="high")
         except Exception as e:
             print(f"  ! could not send push: {e}")
-        reserve.RESERVER.reserve(url, label, cfg, _reserve_notifier(cfg["ntfy"]))
+        reserve.start(url, label, cfg, _reserve_notifier(cfg["ntfy"]),
+                      _open_in_chrome(cfg))
         return True
     print(f"[test] No event matching '{query}'. Events found:")
     for page_cfg in pages:
@@ -411,6 +412,13 @@ def _item_url(it):
     return it.get("url") if isinstance(it, dict) else None
 
 
+def _open_in_chrome(cfg):
+    """Auto-reserve needs Chrome (that's where the extension lives)."""
+    browsers = [b for b in cfg.get("browsers", DEFAULT_BROWSERS)
+                if _browser_key(b) == "chrome"] or ["chrome"]
+    return lambda url: open_in_browsers(url, browsers)
+
+
 def _reserve_notifier(ntfy):
     def notify(title, message, url):
         try:
@@ -473,8 +481,8 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
         # it in the normal browser.
         for it in added:
             if _item_url(it):
-                reserve.RESERVER.reserve(_item_url(it), _item_label(it), cfg,
-                                         _reserve_notifier(ntfy))
+                reserve.start(_item_url(it), _item_label(it), cfg,
+                              _reserve_notifier(ntfy), _open_in_chrome(cfg))
     elif open_browser:
         for target in open_targets:
             try:
@@ -621,8 +629,8 @@ def main():
     elif args.test_reserve:
         if test_reserve(cfg, args.test_reserve):
             reserve.RESERVER.jobs.join()
-            input("Done. Press Enter to close (pay in the Chrome window "
-                  "first if a ticket was reserved)... ")
+            input("Progress appears above. Press Enter to quit when it's "
+                  "done...\n")
     elif args.loop:
         run_loop(cfg)
     else:

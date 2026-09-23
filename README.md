@@ -89,35 +89,41 @@ CLI share a single-instance guard).
 ## Auto-reserve (Timepiece)
 
 Pages with `"auto_reserve": true` (only Timepiece at the moment) don't just
-open the new event: the app drives its own Chrome window to put **one ticket in
-your basket** for you. You then pay in that window yourself.
+open the new event: a small Chrome extension puts **one ticket in your basket**
+for you, in a normal tab of your everyday Chrome (so it uses your normal Fixr
+login). You then pay in that tab yourself.
 
-1. **Log in once:** click **Log in to Fixr** in the app and sign in in the
-   Chrome window that opens. It uses its own profile (`fixr_profile/`), so it
-   stays logged in.
-2. When a new Timepiece event appears, it opens the ticket page and tries one
-   ticket per time slot in this order: 10:00–10:30pm, 9:30pm, 9:00pm, 8:30pm,
-   8:00–8:30pm, then later slots (10:30pm, 11pm, … past midnight). Slots before
-   8pm are never tried.
-3. If a slot fails, it removes that ticket and checks it's gone before trying
+1. **Install the extension once:** in Chrome go to `chrome://extensions`, turn
+   on **Developer mode** (top right), click **Load unpacked** and pick the
+   `chrome_extension` folder inside this project. "Fixr Auto-Reserve" appears
+   in the list. (After a `git pull` that changes it, click its reload ↻ icon.)
+2. Be logged into Fixr in Chrome as normal.
+3. When a new Timepiece event appears, the app opens its ticket page in Chrome
+   and the extension tries one ticket per time slot in this order:
+   10:00–10:30pm, 9:30pm, 9:00pm, 8:30pm, 8:00–8:30pm, then later slots
+   (10:30pm, 11pm, … past midnight). Slots before 8pm are never tried.
+4. If a slot fails, it removes that ticket and checks it's gone before trying
    the next one. If it can't confirm the removal, it stops and pings you.
-4. When one is reserved you get an urgent phone ping and the window stays on the
+5. When one is reserved you get an urgent phone ping and the tab stays on the
    basket. **Pay there before the basket timer runs out.**
 
 If tickets aren't on sale yet it keeps reloading for `wait_for_tickets_minutes`.
-Every step is written to the activity feed. The button/label matching is a
-best guess at Fixr's page, so if it does the wrong thing, send the activity
-feed lines so it can be fixed.
+Every step shows in the app's activity feed as `[reserve] …` lines. The
+button/label matching is a best guess at Fixr's page, so if it does the wrong
+thing, send those lines so it can be fixed.
 
 **Testing it:** click **Test auto-reserve** in the app (or run
 `python watcher.py --test-reserve "Thursday Indie Night"`). It finds that event
 on the Timepiece page, sends the phone ping and runs auto-reserve on it as if it
 had just been posted. This puts a real ticket in your basket; if you don't pay,
-it's released when the basket timer runs out.
+it's released when the basket timer runs out. It opens in your normal Chrome,
+so the extension must be installed.
 
 Settings (`auto_reserve` in `config.json`): `preferred_start_times` (24h, in the
 order to try), `then_try_later_slots`, `wait_for_tickets_minutes`,
-`reserve_timeout_seconds`, and `enabled` to switch it all off.
+`reserve_timeout_seconds`, `enabled` to switch it all off, and
+`use_own_window: true` to go back to the old separate app-controlled Chrome
+window instead of the extension.
 
 ## Adding more pages
 
@@ -157,7 +163,8 @@ If the desktop shortcut is ever lost, recreate one by right-clicking
 | `watcher.py` | Watch engine (also runs standalone: `--loop`) |
 | `notify.py` | Sends the ntfy push (`python notify.py` self-test) |
 | `config.json` | Settings: ntfy topic, interval, list of pages |
-| `reserve.py` | Auto-reserves a ticket in its own Chrome window |
+| `chrome_extension/` | The Fixr Auto-Reserve Chrome extension (does the reserving) |
+| `reserve.py` | Starts auto-reserve; shows the extension's progress in the app |
 | `record_fixr.py` | Records Fixr's requests while you reserve by hand (debugging) |
 | `discover.py` | Inspect what JSON/data a page loads |
 | `state/` | Last-seen snapshot per page (auto-created) |

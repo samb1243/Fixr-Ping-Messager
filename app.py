@@ -214,7 +214,10 @@ class App(tk.Tk):
             messagebox.showerror("Config error",
                                  f"Could not read config.json:\n\n{e}")
             return
-        watcher.reserve.RESERVER.open_login(cfg)
+        if watcher.reserve.settings(cfg)["use_own_window"]:
+            watcher.reserve.RESERVER.open_login(cfg)
+        else:
+            watcher._open_in_chrome(cfg)(watcher.reserve.LOGIN_URL)
 
     def test_reserve(self):
         try:
