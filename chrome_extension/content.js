@@ -218,6 +218,18 @@
     return (await failed(s, name)) ? "next" : "stop";
   }
 
+  // One-off snapshot of the page for the activity feed, so the matching can
+  // be fixed against Fixr's real page.
+  function describePage(s) {
+    const btns = [...document.querySelectorAll("button, [role=button], a[href]")]
+      .filter(visible)
+      .map((b) => `${b.tagName.toLowerCase()}${enabled(b) ? "" : "(disabled)"}` +
+        `:'${label(b).replace(/\s+/g, " ").slice(0, 50)}'`);
+    log(s, `page: ${location.href}`);
+    log(s, `page text (first 60 lines): ${lines().slice(0, 60).join(" | ")}`);
+    log(s, `page buttons (${btns.length}): ${btns.slice(0, 60).join(", ")}`);
+  }
+
   async function runTicketPage(s) {
     // Wait for the ticket list to render (and for tickets to go on sale).
     let slots = [];
@@ -225,6 +237,11 @@
       slots = orderSlots(ticketNames(), s.cfg);
       if (slots.length) break;
       await sleep(500);
+    }
+    if (!s.described) {
+      s.described = true;
+      await setState(s);
+      describePage(s);
     }
     if (!slots.length) {
       if (Date.now() > s.started + s.cfg.wait_for_tickets_minutes * 60000) {
