@@ -82,6 +82,10 @@ CLI share a single-instance guard).
   found it falls back to your default browser. You can also list a full path to
   a browser `.exe`.
 
+  To check it without waiting for a new event, click **Test browsers** in the
+  app (or run `python watcher.py --test-browsers`). It opens fixr.co in every
+  listed browser and shows where it found each one in the activity feed.
+
 ## Adding more pages
 
 Add entries to `pages`:

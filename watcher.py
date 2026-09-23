@@ -102,6 +102,42 @@ def _registry_app_path(exe_name):
     return None
 
 
+def _registry_installed_browser(key):
+    """Find a browser in Windows' list of installed browsers
+    (the one behind Settings > Default apps), e.g. "Opera GXStable"."""
+    try:
+        import winreg
+    except ImportError:
+        return None
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        for base in (r"SOFTWARE\Clients\StartMenuInternet",
+                     r"SOFTWARE\WOW6432Node\Clients\StartMenuInternet"):
+            try:
+                root = winreg.OpenKey(hive, base)
+            except OSError:
+                continue
+            with root:
+                i = 0
+                while True:
+                    try:
+                        sub = winreg.EnumKey(root, i)
+                    except OSError:
+                        break
+                    i += 1
+                    if key not in _browser_key(sub):
+                        continue
+                    try:
+                        with winreg.OpenKey(root, sub + r"\shell\open\command") as k:
+                            cmd = winreg.QueryValue(k, None)
+                    except OSError:
+                        continue
+                    m = re.match(r'\s*"([^"]+)"|\s*(\S+)', cmd)
+                    path = m and (m.group(1) or m.group(2))
+                    if path and os.path.isfile(path):
+                        return path
+    return None
+
+
 def _browser_key(name):
     """Normalise a browser name, so "Opera GX" / "opera_gx" -> "operagx"."""
     return re.sub(r"[^a-z]", "", name.lower())
@@ -122,7 +158,8 @@ def find_browser(name):
             for rel in cands["win"]:
                 if base and os.path.isfile(os.path.join(base, rel)):
                     return os.path.join(base, rel)
-        found = _registry_app_path(cands["app_path"])
+        found = (_registry_app_path(cands["app_path"])
+                 or _registry_installed_browser(_browser_key(name)))
         if found:
             return found
     elif sys.platform == "darwin":
@@ -159,6 +196,18 @@ def open_in_browsers(url, browsers):
     if not opened:
         webbrowser.open(url, new=2)  # new=2 -> new browser tab
         print(f"  -> opened {url} in your default browser")
+
+
+TEST_URL = "https://fixr.co"
+
+
+def test_browsers(cfg):
+    """Open a test page in every configured browser, to check they all work."""
+    browsers = cfg.get("browsers", DEFAULT_BROWSERS)
+    print(f"Testing browsers: {', '.join(browsers)}")
+    for name in browsers:
+        print(f"  browser '{name}': {find_browser(name) or 'NOT FOUND'}")
+    open_in_browsers(TEST_URL, browsers)
 
 
 def load_config():
@@ -503,10 +552,14 @@ def main():
     parser = argparse.ArgumentParser(description="Fixr Ping Messager")
     parser.add_argument("--loop", action="store_true",
                         help="keep running, checking every interval_seconds")
+    parser.add_argument("--test-browsers", action="store_true",
+                        help="open a test page in every configured browser")
     args = parser.parse_args()
 
     cfg = load_config()
-    if args.loop:
+    if args.test_browsers:
+        test_browsers(cfg)
+    elif args.loop:
         run_loop(cfg)
     else:
         run_once(cfg)
