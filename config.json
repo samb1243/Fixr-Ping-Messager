@@ -6,13 +6,21 @@
   "interval_seconds": 1,
   "open_browser_on_change": true,
   "browsers": ["chrome"],
+  "auto_reserve": {
+    "enabled": true,
+    "preferred_start_times": ["22:00", "21:30", "21:00", "20:30", "20:00"],
+    "then_try_later_slots": true,
+    "wait_for_tickets_minutes": 10,
+    "reserve_timeout_seconds": 15
+  },
   "pages": [
     {
       "name": "Timepiece (Fixr organiser)",
       "url": "https://fixr.co/organiser/timepiece?lang=en-US",
       "mode": "fixr_organiser",
       "selector": null,
-      "enabled": true
+      "enabled": true,
+      "auto_reserve": true
     },
     {
       "name": "4Play Events Ltd (Fixr organiser)",

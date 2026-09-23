@@ -110,6 +110,8 @@ class App(tk.Tk):
         self.stop_btn.pack(side="left", padx=(10, 0), ipadx=12, ipady=6)
         ttk.Button(btns, text="Test browsers", command=self.test_browsers
                    ).pack(side="right", ipadx=8, ipady=6)
+        ttk.Button(btns, text="Log in to Fixr", command=self.fixr_login
+                   ).pack(side="right", padx=(0, 8), ipadx=8, ipady=6)
 
         ttk.Label(self, text="Watching", font=("Segoe UI", 9, "bold")).pack(
             anchor="w")
@@ -198,6 +200,15 @@ class App(tk.Tk):
         self._set_watching(True)
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
+
+    def fixr_login(self):
+        try:
+            cfg = watcher.load_config()
+        except Exception as e:
+            messagebox.showerror("Config error",
+                                 f"Could not read config.json:\n\n{e}")
+            return
+        watcher.reserve.RESERVER.open_login(cfg)
 
     def test_browsers(self):
         try:

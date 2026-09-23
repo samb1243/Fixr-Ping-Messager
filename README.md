@@ -86,6 +86,33 @@ CLI share a single-instance guard).
   app (or run `python watcher.py --test-browsers`). It opens fixr.co in every
   listed browser and shows where it found each one in the activity feed.
 
+## Auto-reserve (Timepiece)
+
+Pages with `"auto_reserve": true` (only Timepiece at the moment) don't just
+open the new event: the app drives its own Chrome window to put **one ticket in
+your basket** for you. You then pay in that window yourself.
+
+1. **Log in once:** click **Log in to Fixr** in the app and sign in in the
+   Chrome window that opens. It uses its own profile (`fixr_profile/`), so it
+   stays logged in.
+2. When a new Timepiece event appears, it opens the ticket page and tries one
+   ticket per time slot in this order: 10:00–10:30pm, 9:30pm, 9:00pm, 8:30pm,
+   8:00–8:30pm, then later slots (10:30pm, 11pm, … past midnight). Slots before
+   8pm are never tried.
+3. If a slot fails, it removes that ticket and checks it's gone before trying
+   the next one. If it can't confirm the removal, it stops and pings you.
+4. When one is reserved you get an urgent phone ping and the window stays on the
+   basket. **Pay there before the basket timer runs out.**
+
+If tickets aren't on sale yet it keeps reloading for `wait_for_tickets_minutes`.
+Every step is written to the activity feed. The button/label matching is a
+best guess at Fixr's page, so if it does the wrong thing, send the activity
+feed lines so it can be fixed.
+
+Settings (`auto_reserve` in `config.json`): `preferred_start_times` (24h, in the
+order to try), `then_try_later_slots`, `wait_for_tickets_minutes`,
+`reserve_timeout_seconds`, and `enabled` to switch it all off.
+
 ## Adding more pages
 
 Add entries to `pages`:
@@ -124,6 +151,8 @@ If the desktop shortcut is ever lost, recreate one by right-clicking
 | `watcher.py` | Watch engine (also runs standalone: `--loop`) |
 | `notify.py` | Sends the ntfy push (`python notify.py` self-test) |
 | `config.json` | Settings: ntfy topic, interval, list of pages |
+| `reserve.py` | Auto-reserves a ticket in its own Chrome window |
+| `record_fixr.py` | Records Fixr's requests while you reserve by hand (debugging) |
 | `discover.py` | Inspect what JSON/data a page loads |
 | `state/` | Last-seen snapshot per page (auto-created) |
 | `watcher.log` | Activity log |

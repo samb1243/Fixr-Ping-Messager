@@ -30,6 +30,7 @@ from datetime import datetime
 
 import requests
 
+import reserve
 from notify import send_push
 
 ROOT = pathlib.Path(__file__).parent
@@ -375,8 +376,18 @@ def _item_url(it):
     return it.get("url") if isinstance(it, dict) else None
 
 
+def _reserve_notifier(ntfy):
+    def notify(title, message, url):
+        try:
+            send_push(ntfy["server"], ntfy["topic"], title=title,
+                      message=message, url=url, priority="max")
+        except Exception as e:
+            print(f"  ! could not send push: {e}")
+    return notify
+
+
 def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
-               browsers=DEFAULT_BROWSERS):
+               browsers=DEFAULT_BROWSERS, cfg=None):
     """Check one page. Returns one of: 'baseline', 'nochange', 'changed'."""
     name = page_cfg["name"]
     signature, items = fetch_page_content(page_cfg, browser)
@@ -420,7 +431,16 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
         open_targets = [page_cfg["url"]]
     click_url = new_urls[0] if new_urls else page_cfg["url"]
 
-    if open_browser:
+    auto_reserve = (cfg is not None and page_cfg.get("auto_reserve")
+                    and reserve.settings(cfg)["enabled"])
+    if auto_reserve:
+        # The reserve window opens each new event itself, so don't also open
+        # it in the normal browser.
+        for it in added:
+            if _item_url(it):
+                reserve.RESERVER.reserve(_item_url(it), _item_label(it), cfg,
+                                         _reserve_notifier(ntfy))
+    elif open_browser:
         for target in open_targets:
             try:
                 open_in_browsers(target, browsers)
@@ -455,7 +475,8 @@ def run_once(cfg, log_nochange=True):
         for page_cfg in pages:
             try:
                 check_page(page_cfg, browser, ntfy, log_nochange=log_nochange,
-                           open_browser=open_browser, browsers=browsers)
+                           open_browser=open_browser, browsers=browsers,
+                           cfg=cfg)
             except Exception as e:
                 errors += 1
                 print(f"  ! Error checking '{page_cfg['name']}': {e}",
