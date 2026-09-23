@@ -20,7 +20,7 @@
   const REMOVE_BTN = /^\s*[-−–]\s*$|decrease|decrement|remove one|minus/i;
   const RESERVE_BTN = /reserve|checkout|check out|continue|get tickets|book|buy|next|proceed/i;
   const SUCCESS_URL = /checkout|basket|cart|payment|order/i;
-  const SUCCESS_TEXT = /reserved|time (left|remaining)|complete your (order|purchase|booking)|pay now|payment details|your basket|order summary/i;
+  const SUCCESS_TEXT = /reserved|held for|expires? in|time (left|remaining)|complete your (order|purchase|booking)|pay now|payment details|your basket|order summary/i;
   const FAIL_TEXT = /sold out|no longer available|not available|unavailable|something went wrong|try again|couldn'?t|could not|limit reached|error/i;
   const SOLD_OUT = /sold out|unavailable|not available|off sale/i;
 
@@ -94,25 +94,55 @@
   function ticketNames() {
     return [...new Set(lines().filter((t) => SLOT_RE.test(t) && t.length < 120))];
   }
+  // The quantity box in a ticket row (Fixr: "[-] [0] [+]", icon-only buttons).
+  function qtyInputs(scope) {
+    return [...scope.querySelectorAll("input")]
+      .filter((i) => visible(i) && /^\d+$/.test(i.value.trim()));
+  }
   function ticketRow(name) {
-    // Deepest element whose text contains the ticket name...
+    // Deepest element whose text contains the ticket name. The ticket list
+    // comes before the order summary (which repeats the name), so take the
+    // first one in the page.
     let el = [...document.body.querySelectorAll("*")]
       .filter((e) => e.innerText && e.innerText.includes(name))
       .find((e) => ![...e.children].some((c) => c.innerText && c.innerText.includes(name)));
-    // ...then climb until it holds exactly one "+" button (more = whole list).
-    for (let i = 0; el && i < 8; i++) {
+    // ...then climb until it holds exactly one quantity control (more = the
+    // whole list, so this text isn't a ticket row).
+    for (let i = 0; el && i < 10; i++) {
       el = el.parentElement;
       if (!el) return null;
-      const adds = buttons(el, ADD_BTN).length;
-      if (adds === 1) return el;
-      if (adds > 1) return null;
+      const n = qtyInputs(el).length || buttons(el, ADD_BTN).length;
+      if (n === 1) return el;
+      if (n > 1) return null;
     }
     return null;
   }
+  const before = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+  // The row's "+" button: labelled "+"/"Increase", else the button right
+  // after the quantity box. Returns null if missing or disabled.
+  function plusButton(row) {
+    const labelled = buttons(row, ADD_BTN)[0];
+    if (labelled) return enabled(labelled) ? labelled : null;
+    const input = qtyInputs(row)[0];
+    if (!input) return null;
+    const b = [...row.querySelectorAll("button, [role=button]")]
+      .filter(visible).find((x) => before(input, x));
+    return b && enabled(b) ? b : null;
+  }
+  // The row's "-" button: labelled "-"/"Decrease", else the button right
+  // before the quantity box.
+  function minusButton(row) {
+    const labelled = buttons(row, REMOVE_BTN)[0];
+    if (labelled) return enabled(labelled) ? labelled : null;
+    const input = qtyInputs(row)[0];
+    if (!input) return null;
+    const b = [...row.querySelectorAll("button, [role=button]")]
+      .filter(visible).filter((x) => before(x, input)).pop();
+    return b && enabled(b) ? b : null;
+  }
   function rowQuantity(row) {
-    for (const inp of row.querySelectorAll("input")) {
-      if (/^\d+$/.test(inp.value.trim())) return +inp.value;
-    }
+    const input = qtyInputs(row)[0];
+    if (input) return +input.value.trim();
     const m = /(?:^|\n)\s*(\d{1,2})\s*(?:\n|$)/.exec(row.innerText);
     return m ? +m[1] : null;
   }
@@ -136,7 +166,7 @@
       const row = ticketRow(name);
       if (!row) break;
       const qty = rowQuantity(row);
-      const minus = findButton(row, REMOVE_BTN);
+      const minus = minusButton(row);
       if (qty === 0 || (qty === null && !minus)) {
         log(s, `  ${name}: removed (quantity 0)`);
         return true;
@@ -167,13 +197,21 @@
     const row = ticketRow(name);
     if (!row) { log(s, `  ${name}: can't find its + button, skipping`); return "skip"; }
     if (SOLD_OUT.test(row.innerText)) { log(s, `  ${name}: sold out, skipping`); return "skip"; }
-    const add = findButton(row, ADD_BTN);
-    if (!add) { log(s, `  ${name}: + button disabled, skipping`); return "skip"; }
+    const add = plusButton(row);
+    if (!add) { log(s, `  ${name}: + button missing or disabled, skipping`); return "skip"; }
     log(s, `  ${name}: adding 1 ticket`);
     add.click();
-    await sleep(400);
-
-    const reserve = findButton(document, RESERVE_BTN, ADD_BTN);
+    // Wait for the quantity to show 1 and the Reserve button to appear.
+    for (let i = 0; i < 20 && rowQuantity(row) === 0; i++) await sleep(150);
+    if (rowQuantity(row) === 0) {
+      log(s, `  ${name}: pressed + but the quantity stayed 0, skipping`);
+      return "skip";
+    }
+    let reserve = null;
+    for (let i = 0; i < 20 && !reserve; i++) {
+      reserve = findButton(document, RESERVE_BTN, ADD_BTN);
+      if (!reserve) await sleep(150);
+    }
     if (!reserve) {
       log(s, `  ${name}: no reserve/checkout button found`);
       return (await failed(s, name)) ? "next" : "stop";
