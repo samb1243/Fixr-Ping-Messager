@@ -210,6 +210,9 @@ def test_browsers(cfg):
     for name in browsers:
         print(f"  browser '{name}': {find_browser(name) or 'NOT FOUND'}")
     open_in_browsers(TEST_URL, browsers)
+    describe_accounts(cfg)
+    for who, open_url in _reserve_targets(cfg) if cfg.get("accounts") else []:
+        open_url(TEST_URL)
 
 
 def test_reserve(cfg, query):
@@ -238,7 +241,7 @@ def test_reserve(cfg, query):
         except Exception as e:
             print(f"  ! could not send push: {e}")
         reserve.start(url, label, cfg, _reserve_notifier(cfg["ntfy"]),
-                      _open_one, _reserve_browsers(cfg))
+                      _reserve_targets(cfg))
         return True
     print(f"[test] No event matching '{query}'. Events found:")
     for page_cfg in pages:
@@ -418,9 +421,54 @@ def _open_one(url, browser):
     open_in_browsers(url, [browser], fallback=False)
 
 
-def _reserve_browsers(cfg):
-    """Browsers auto-reserve runs in: each needs the extension installed."""
-    return cfg.get("browsers", DEFAULT_BROWSERS)
+def chrome_profile_dir(profile):
+    """Where Chrome keeps a profile's data on Windows (None elsewhere)."""
+    base = os.environ.get("LOCALAPPDATA")
+    if not base:
+        return None
+    return os.path.join(base, "Google", "Chrome", "User Data", profile)
+
+
+def open_in_chrome_profile(url, profile, who):
+    """Open url in a specific Chrome profile (= one Fixr account)."""
+    exe = find_browser("chrome")
+    if not exe:
+        print(f"  ! chrome not found, can't open it for {who}")
+        return
+    try:
+        subprocess.Popen([exe, f"--profile-directory={profile}", url],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"  -> opened {url.split('#')[0]} in Chrome as {who} "
+              f"(profile '{profile}')")
+    except Exception as e:
+        print(f"  ! could not open Chrome for {who}: {e}")
+
+
+def _reserve_targets(cfg):
+    """[(who, open_url)] that auto-reserve runs in.
+
+    With "accounts" in config.json: one per account, each in its own Chrome
+    profile (so each is logged into a different Fixr account). Otherwise one
+    per browser in "browsers". Each needs the extension installed."""
+    accounts = cfg.get("accounts") or []
+    if accounts:
+        return [(a["name"],
+                 lambda u, a=a: open_in_chrome_profile(u, a["chrome_profile"],
+                                                       a["name"]))
+                for a in accounts]
+    return [(b, lambda u, b=b: _open_one(u, b))
+            for b in cfg.get("browsers", DEFAULT_BROWSERS)]
+
+
+def describe_accounts(cfg):
+    """Log each configured account and whether its Chrome profile exists."""
+    for a in cfg.get("accounts") or []:
+        d = chrome_profile_dir(a["chrome_profile"])
+        found = ("found" if d and os.path.isdir(d) else
+                 "NOT FOUND - check the name at chrome://version" if d else
+                 "can't check on this computer")
+        print(f"  account '{a['name']}': Chrome profile "
+              f"'{a['chrome_profile']}' {found}")
 
 
 def _reserve_notifier(ntfy):
@@ -486,8 +534,7 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
         for it in added:
             if _item_url(it):
                 reserve.start(_item_url(it), _item_label(it), cfg,
-                              _reserve_notifier(ntfy), _open_one,
-                              _reserve_browsers(cfg))
+                              _reserve_notifier(ntfy), _reserve_targets(cfg))
     elif open_browser:
         for target in open_targets:
             try:
@@ -579,6 +626,7 @@ def run_loop(cfg, stop_event=None, write_pid=True):
         for name in cfg.get("browsers", DEFAULT_BROWSERS):
             exe = find_browser(name)
             print(f"  browser '{name}': {exe or 'NOT FOUND'}")
+        describe_accounts(cfg)
     backoff = interval
     checks = 0
     last_heartbeat = time.monotonic()

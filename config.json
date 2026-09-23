@@ -6,6 +6,10 @@
   "interval_seconds": 1,
   "open_browser_on_change": true,
   "browsers": ["chrome"],
+  "accounts": [
+    { "name": "Account 1", "chrome_profile": "Default" },
+    { "name": "Account 2", "chrome_profile": "Profile 1" }
+  ],
   "auto_reserve": {
     "enabled": true,
     "preferred_start_times": ["22:00", "21:30", "21:00", "20:30", "20:00"],

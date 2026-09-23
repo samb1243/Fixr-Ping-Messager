@@ -34,8 +34,8 @@
   function send(msg) {
     try { chrome.runtime.sendMessage(msg); } catch (e) { /* extension reloaded */ }
   }
-  // Which browser this is (Chrome / Opera GX), so the activity feed can tell
-  // two simultaneous runs apart.
+  // Which account (Chrome profile) or browser this run is for, so the
+  // activity feed can tell simultaneous runs apart.
   const who = (s) => s.cfg.browser || "chrome";
   function log(s, text) {
     console.log("[fixr auto-reserve]", text);
@@ -160,9 +160,9 @@
   }
 
   async function success(s) {
-    log(s, `RESERVED ${s.current} for ${s.cfg.label}. Pay in this ${who(s)} tab!`);
-    await finish(s, `Reserved in ${who(s)}: ${s.cfg.label}`,
-      `${s.current} is in your ${who(s)} basket - pay now!`,
+    log(s, `RESERVED ${s.current} for ${s.cfg.label}. Pay in the ${who(s)} window!`);
+    await finish(s, `Reserved for ${who(s)}: ${s.cfg.label}`,
+      `${s.current} is in ${who(s)}'s basket - pay now!`,
       location.href);
   }
 
@@ -354,7 +354,7 @@
       const s = { active: true, url, cfg, tried: [], phase: "find", current: null,
         started: Date.now() };
       await setState(s);
-      log(s, `${cfg.label}: extension started in ${who(s)} on ${url}`);
+      log(s, `${cfg.label}: extension started for ${who(s)} on ${url}`);
     }
     if (document.readyState === "loading") {
       await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));

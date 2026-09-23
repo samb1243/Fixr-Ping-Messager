@@ -110,6 +110,32 @@ login). You then pay in that tab yourself.
    ticket if you list more than one: pay in one and press **Cancel** in the
    other. **Pay there before the basket timer runs out.**
 
+**Several Fixr accounts (one ticket each):** each account lives in its own
+Chrome profile (the profile picture at the top right of Chrome), which keeps
+its own Fixr login. List them in `config.json`:
+
+```json
+"accounts": [
+  { "name": "Account 1", "chrome_profile": "Default" },
+  { "name": "Account 2", "chrome_profile": "Profile 1" }
+]
+```
+
+- `name` is just a label for the activity feed and phone pings.
+- `chrome_profile` is the profile's folder: open `chrome://version` in that
+  profile and copy the last part of **Profile Path** (e.g. `Default`,
+  `Profile 1`).
+- In **each** profile: install the extension (Load unpacked, as above) and log
+  into that account's Fixr.
+- Add more accounts by adding more lines. Remove the `accounts` block to go
+  back to a single browser.
+
+When a new event appears, each account gets its own Chrome window and tries the
+same slot order independently. Feed lines and pings say which account, e.g.
+`(Account 2) RESERVED …` - pay in that account's window before its timer runs
+out. **Log in to Fixr** opens the login page in every account's profile, and
+**Test browsers** shows whether each profile was found.
+
 **Turning it on/off:** tick or untick **Auto-reserve tickets** in the app. It
 takes effect straight away, even while watching. When it's off, new events just
 open in your browser as before.

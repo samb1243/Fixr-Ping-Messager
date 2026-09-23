@@ -235,8 +235,9 @@ class App(tk.Tk):
         if watcher.reserve.settings(cfg)["use_own_window"]:
             watcher.reserve.RESERVER.open_login(cfg)
         else:
-            watcher.open_in_browsers(watcher.reserve.LOGIN_URL,
-                                     watcher._reserve_browsers(cfg))
+            # Log in once per account (each opens in its own Chrome profile).
+            for who, open_url in watcher._reserve_targets(cfg):
+                open_url(watcher.reserve.LOGIN_URL)
 
     def test_reserve(self):
         try:
