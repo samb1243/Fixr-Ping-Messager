@@ -83,8 +83,10 @@ CLI share a single-instance guard).
   a browser `.exe`.
 
   To check it without waiting for a new event, click **Test browsers** in the
-  app (or run `python watcher.py --test-browsers`). It opens fixr.co in every
-  listed browser and shows where it found each one in the activity feed.
+  app (or run `python watcher.py --test-browsers`). It opens every page you're
+  watching (the enabled ones in `pages`) the same way a new event would: in
+  each ticked account's Chrome window, or in the listed browsers if there are
+  no accounts. The activity feed shows where it found each browser/profile.
 
 ## Auto-reserve (Timepiece)
 

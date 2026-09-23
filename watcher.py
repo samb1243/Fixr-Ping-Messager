@@ -200,19 +200,26 @@ def open_in_browsers(url, browsers, fallback=True):
         print(f"  -> opened {url} in your default browser")
 
 
-TEST_URL = "https://fixr.co"
-
-
 def test_browsers(cfg):
-    """Open a test page in every configured browser, to check they all work."""
+    """Open every page being watched, the same way a new event would open
+    (in each ticked account, else the normal browsers), to check it all works."""
     browsers = cfg.get("browsers", DEFAULT_BROWSERS)
     print(f"Testing browsers: {', '.join(browsers)}")
     for name in browsers:
         print(f"  browser '{name}': {find_browser(name) or 'NOT FOUND'}")
-    open_in_browsers(TEST_URL, browsers)
     describe_accounts(cfg)
-    for who, open_url in _reserve_targets(cfg) if cfg.get("accounts") else []:
-        open_url(TEST_URL)
+    pages = [p for p in cfg["pages"] if p.get("enabled", True)]
+    if not pages:
+        print("  No pages are enabled in config.json - nothing to open.")
+        return
+    targets = _reserve_targets(cfg) if cfg.get("accounts") else []
+    for page_cfg in pages:
+        print(f"  opening {page_cfg['name']}")
+        if targets:
+            for who, open_url in targets:
+                open_url(page_cfg["url"])
+        else:
+            open_in_browsers(page_cfg["url"], browsers)
 
 
 def test_reserve(cfg, query):
@@ -690,7 +697,7 @@ def main():
     parser.add_argument("--loop", action="store_true",
                         help="keep running, checking every interval_seconds")
     parser.add_argument("--test-browsers", action="store_true",
-                        help="open a test page in every configured browser")
+                        help="open every watched page in the browsers/accounts")
     parser.add_argument("--test-reserve", metavar="EVENT",
                         help="run auto-reserve now on the event whose name "
                              "contains EVENT, e.g. \"Thursday Indie Night\"")
