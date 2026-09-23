@@ -279,11 +279,12 @@ def start_log_server(port):
     threading.Thread(target=_log_server.serve_forever, daemon=True).start()
 
 
-def extension_url(url, label, cfg):
+def extension_url(url, label, cfg, browser="chrome"):
     """The ticket URL with the settings the extension needs tacked on."""
     s = settings(cfg)
     payload = {
         "label": label,
+        "browser": browser,
         "preferred_start_times": s["preferred_start_times"],
         "then_try_later_slots": s["then_try_later_slots"],
         "wait_for_tickets_minutes": s["wait_for_tickets_minutes"],
@@ -295,18 +296,21 @@ def extension_url(url, label, cfg):
     return url.split("#")[0] + "#fixr-autoreserve=" + blob.rstrip("=")
 
 
-def start(url, label, cfg, notify, open_url):
+def start(url, label, cfg, notify, open_url, browsers=("chrome",)):
     """Kick off auto-reserve for one event.
 
-    open_url(url) opens a URL in the user's normal Chrome."""
+    open_url(url, browser) opens a URL in that browser (without falling back
+    to another one). Each browser in `browsers` gets its own attempt, run by
+    its own copy of the Fixr Auto-Reserve extension."""
     s = settings(cfg)
     if s["use_own_window"]:
         RESERVER.reserve(url, label, cfg, notify)
         return
     start_log_server(s["log_port"])
-    print(f"[reserve] {label}: opening in Chrome - the Fixr Auto-Reserve "
-          "extension takes it from here.")
-    open_url(extension_url(url, label, cfg))
+    for browser in browsers:
+        print(f"[reserve] {label}: opening in {browser} - the Fixr "
+              "Auto-Reserve extension takes it from here.")
+        open_url(extension_url(url, label, cfg, browser), browser)
 
 
 # ------------------------------------------------------------- the reserver

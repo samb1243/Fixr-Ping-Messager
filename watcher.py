@@ -55,7 +55,7 @@ _NEXT_DATA_RE = re.compile(r'id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
 
 # Browsers to open new events in (config key "browsers"). Each is looked up in
 # the usual install locations; any that aren't installed are skipped.
-DEFAULT_BROWSERS = ["chrome"]
+DEFAULT_BROWSERS = ["chrome", "operagx"]
 _BROWSER_CANDIDATES = {
     "chrome": {
         "win": [r"Google\Chrome\Application\chrome.exe"],
@@ -174,8 +174,9 @@ def find_browser(name):
     return None
 
 
-def open_in_browsers(url, browsers):
-    """Open url in each configured browser; fall back to the system default."""
+def open_in_browsers(url, browsers, fallback=True):
+    """Open url in each configured browser; fall back to the system default
+    (unless fallback=False) if none of them could be opened."""
     opened = False
     for name in browsers:
         exe = find_browser(name)
@@ -194,7 +195,7 @@ def open_in_browsers(url, browsers):
             opened = True
         except Exception as e:
             print(f"  ! could not open {name}: {e}")
-    if not opened:
+    if not opened and fallback:
         webbrowser.open(url, new=2)  # new=2 -> new browser tab
         print(f"  -> opened {url} in your default browser")
 
@@ -237,7 +238,7 @@ def test_reserve(cfg, query):
         except Exception as e:
             print(f"  ! could not send push: {e}")
         reserve.start(url, label, cfg, _reserve_notifier(cfg["ntfy"]),
-                      _open_in_chrome(cfg))
+                      _open_one, _reserve_browsers(cfg))
         return True
     print(f"[test] No event matching '{query}'. Events found:")
     for page_cfg in pages:
@@ -412,11 +413,14 @@ def _item_url(it):
     return it.get("url") if isinstance(it, dict) else None
 
 
-def _open_in_chrome(cfg):
-    """Auto-reserve needs Chrome (that's where the extension lives)."""
-    browsers = [b for b in cfg.get("browsers", DEFAULT_BROWSERS)
-                if _browser_key(b) == "chrome"] or ["chrome"]
-    return lambda url: open_in_browsers(url, browsers)
+def _open_one(url, browser):
+    """Open url in exactly this browser (no fallback to another one)."""
+    open_in_browsers(url, [browser], fallback=False)
+
+
+def _reserve_browsers(cfg):
+    """Browsers auto-reserve runs in: each needs the extension installed."""
+    return cfg.get("browsers", DEFAULT_BROWSERS)
 
 
 def _reserve_notifier(ntfy):
@@ -482,7 +486,8 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
         for it in added:
             if _item_url(it):
                 reserve.start(_item_url(it), _item_label(it), cfg,
-                              _reserve_notifier(ntfy), _open_in_chrome(cfg))
+                              _reserve_notifier(ntfy), _open_one,
+                              _reserve_browsers(cfg))
     elif open_browser:
         for target in open_targets:
             try:

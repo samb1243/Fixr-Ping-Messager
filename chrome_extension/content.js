@@ -1,4 +1,4 @@
-// Fixr Auto-Reserve: runs on fixr.co pages in your normal Chrome.
+// Fixr Auto-Reserve: runs on fixr.co pages in your normal Chrome / Opera GX.
 //
 // Fixr Ping Messager opens a new event's ticket page with
 // "#fixr-autoreserve=<settings>" on the end. That starts a run: one ticket
@@ -34,9 +34,12 @@
   function send(msg) {
     try { chrome.runtime.sendMessage(msg); } catch (e) { /* extension reloaded */ }
   }
+  // Which browser this is (Chrome / Opera GX), so the activity feed can tell
+  // two simultaneous runs apart.
+  const who = (s) => s.cfg.browser || "chrome";
   function log(s, text) {
     console.log("[fixr auto-reserve]", text);
-    send({ type: "log", port: s.cfg.log_port, text });
+    send({ type: "log", port: s.cfg.log_port, text: `(${who(s)}) ${text}` });
   }
   function push(s, title, message, url) {
     send({ type: "push", ntfy: s.cfg.ntfy, title, message, url });
@@ -157,8 +160,9 @@
   }
 
   async function success(s) {
-    log(s, `RESERVED ${s.current} for ${s.cfg.label}. Pay in this Chrome tab!`);
-    await finish(s, `Reserved: ${s.cfg.label}`, `${s.current} is in your basket - pay now!`,
+    log(s, `RESERVED ${s.current} for ${s.cfg.label}. Pay in this ${who(s)} tab!`);
+    await finish(s, `Reserved in ${who(s)}: ${s.cfg.label}`,
+      `${s.current} is in your ${who(s)} basket - pay now!`,
       location.href);
   }
 
@@ -350,7 +354,7 @@
       const s = { active: true, url, cfg, tried: [], phase: "find", current: null,
         started: Date.now() };
       await setState(s);
-      log(s, `${cfg.label}: extension started in Chrome on ${url}`);
+      log(s, `${cfg.label}: extension started in ${who(s)} on ${url}`);
     }
     if (document.readyState === "loading") {
       await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
