@@ -54,13 +54,22 @@ _NEXT_DATA_RE = re.compile(r'id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
 
 # Browsers to open new events in (config key "browsers"). Each is looked up in
 # the usual install locations; any that aren't installed are skipped.
-DEFAULT_BROWSERS = ["chrome", "edge"]
+DEFAULT_BROWSERS = ["chrome", "operagx"]
 _BROWSER_CANDIDATES = {
     "chrome": {
         "win": [r"Google\Chrome\Application\chrome.exe"],
         "app_path": "chrome.exe",
         "mac": ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"],
         "path": ["google-chrome", "google-chrome-stable", "chrome", "chromium"],
+    },
+    "operagx": {
+        "win": [r"Programs\Opera GX\opera.exe",
+                r"Programs\Opera GX\launcher.exe",
+                r"Opera GX\opera.exe",
+                r"Opera GX\launcher.exe"],
+        "app_path": "opera.exe",
+        "mac": ["/Applications/Opera GX.app/Contents/MacOS/Opera"],
+        "path": ["opera-gx", "opera"],
     },
     "edge": {
         "win": [r"Microsoft\Edge\Application\msedge.exe"],
@@ -93,9 +102,14 @@ def _registry_app_path(exe_name):
     return None
 
 
+def _browser_key(name):
+    """Normalise a browser name, so "Opera GX" / "opera_gx" -> "operagx"."""
+    return re.sub(r"[^a-z]", "", name.lower())
+
+
 def find_browser(name):
     """Return the executable path for a browser name, or None if not found."""
-    cands = _BROWSER_CANDIDATES.get(name.lower())
+    cands = _BROWSER_CANDIDATES.get(_browser_key(name))
     if cands is None:
         # Not a known name -- treat it as a path or command on PATH.
         return name if os.path.isfile(name) else shutil.which(name)
@@ -127,7 +141,7 @@ def open_in_browsers(url, browsers):
     opened = False
     for name in browsers:
         exe = find_browser(name)
-        protocol = _BROWSER_CANDIDATES.get(name.lower(), {}).get("protocol")
+        protocol = _BROWSER_CANDIDATES.get(_browser_key(name), {}).get("protocol")
         try:
             if exe:
                 subprocess.Popen([exe, url], stdout=subprocess.DEVNULL,
