@@ -93,6 +93,22 @@ def set_enabled(on):
     APP_SETTINGS.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def account_enabled(name):
+    """Whether this account's tick box in the app is on (default: on)."""
+    return name not in _app_settings().get("accounts_off", [])
+
+
+def set_account_enabled(name, on):
+    """Turn one account on/off (the app's per-account tick boxes)."""
+    data = _app_settings()
+    off = [n for n in data.get("accounts_off", []) if n != name]
+    if not on:
+        off.append(name)
+    data["accounts_off"] = off
+    APP_SETTINGS.parent.mkdir(exist_ok=True)
+    APP_SETTINGS.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
 def settings(cfg):
     s = dict(DEFAULTS)
     s.update(cfg.get("auto_reserve") or {})

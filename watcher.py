@@ -232,6 +232,9 @@ def test_reserve(cfg, query):
             continue
         it = match[0]
         label, url = _item_label(it), _item_url(it)
+        if not _reserve_targets(cfg):
+            print("[test] Every account is switched off - tick at least one.")
+            return False
         print(f"[test] Pretending '{label}' was just posted on "
               f"{page_cfg['name']}.")
         try:
@@ -444,14 +447,18 @@ def open_in_chrome_profile(url, profile, who):
         print(f"  ! could not open Chrome for {who}: {e}")
 
 
-def _reserve_targets(cfg):
+def _reserve_targets(cfg, include_off=False):
     """[(who, open_url)] that auto-reserve runs in.
 
-    With "accounts" in config.json: one per account, each in its own Chrome
-    profile (so each is logged into a different Fixr account). Otherwise one
-    per browser in "browsers". Each needs the extension installed."""
+    With "accounts" in config.json: one per account that's switched on in the
+    app (all of them with include_off), each in its own Chrome profile (so
+    each is logged into a different Fixr account). Otherwise one per browser
+    in "browsers". Each needs the extension installed."""
     accounts = cfg.get("accounts") or []
     if accounts:
+        if not include_off:
+            accounts = [a for a in accounts
+                        if reserve.account_enabled(a["name"])]
         return [(a["name"],
                  lambda u, a=a: open_in_chrome_profile(u, a["chrome_profile"],
                                                        a["name"]))
@@ -467,8 +474,9 @@ def describe_accounts(cfg):
         found = ("found" if d and os.path.isdir(d) else
                  "NOT FOUND - check the name at chrome://version" if d else
                  "can't check on this computer")
+        state = "" if reserve.account_enabled(a["name"]) else " [switched OFF]"
         print(f"  account '{a['name']}': Chrome profile "
-              f"'{a['chrome_profile']}' {found}")
+              f"'{a['chrome_profile']}' {found}{state}")
 
 
 def _reserve_notifier(ntfy):
@@ -528,6 +536,10 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
 
     auto_reserve = (cfg is not None and page_cfg.get("auto_reserve")
                     and reserve.settings(cfg)["enabled"])
+    if auto_reserve and not _reserve_targets(cfg):
+        print("  (auto-reserve is on but every account is switched off - "
+              "just opening it)")
+        auto_reserve = False
     if auto_reserve:
         # The reserve window opens each new event itself, so don't also open
         # it in the normal browser.

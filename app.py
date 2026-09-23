@@ -111,7 +111,7 @@ class App(tk.Tk):
 
         # Extra tools on their own row, so they never get squeezed off-screen.
         tools = ttk.Frame(self)
-        tools.pack(fill="x", pady=(0, 12))
+        tools.pack(fill="x", pady=(0, 8))
         self.auto_var = tk.BooleanVar(value=self._auto_reserve_on())
         ttk.Checkbutton(tools, text="Auto-reserve tickets",
                         variable=self.auto_var,
@@ -123,6 +123,30 @@ class App(tk.Tk):
                    ).pack(side="left", padx=(8, 0), ipadx=8, ipady=3)
         ttk.Button(tools, text="Test browsers", command=self.test_browsers
                    ).pack(side="left", padx=(8, 0), ipadx=8, ipady=3)
+
+        # One tick box per Fixr account (from "accounts" in config.json).
+        self.account_vars = {}
+        self.account_boxes = []
+        try:
+            accounts = watcher.load_config().get("accounts") or []
+        except Exception:
+            accounts = []
+        if accounts:
+            acc_row = ttk.Frame(self)
+            acc_row.pack(fill="x", pady=(0, 12))
+            ttk.Label(acc_row, text="Accounts:").pack(side="left",
+                                                      padx=(0, 6))
+            for a in accounts:
+                name = a["name"]
+                var = tk.BooleanVar(
+                    value=watcher.reserve.account_enabled(name))
+                box = ttk.Checkbutton(
+                    acc_row, text=name, variable=var,
+                    command=lambda n=name, v=var: self.toggle_account(n, v))
+                box.pack(side="left", padx=(0, 10))
+                self.account_vars[name] = var
+                self.account_boxes.append(box)
+            self._update_account_boxes()
 
         ttk.Label(self, text="Watching", font=("Segoe UI", 9, "bold")).pack(
             anchor="w")
@@ -224,6 +248,18 @@ class App(tk.Tk):
         print("Auto-reserve is now " + (
             "ON - new Timepiece events get a ticket reserved." if on else
             "OFF - new events just open in your browser."))
+        self._update_account_boxes()
+
+    def toggle_account(self, name, var):
+        on = var.get()
+        watcher.reserve.set_account_enabled(name, on)
+        print(f"Auto-reserve for {name} is now {'ON' if on else 'OFF'}.")
+
+    def _update_account_boxes(self):
+        # Account boxes only matter while auto-reserve itself is on.
+        state = "!disabled" if self.auto_var.get() else "disabled"
+        for box in self.account_boxes:
+            box.state([state])
 
     def fixr_login(self):
         try:
@@ -236,7 +272,8 @@ class App(tk.Tk):
             watcher.reserve.RESERVER.open_login(cfg)
         else:
             # Log in once per account (each opens in its own Chrome profile).
-            for who, open_url in watcher._reserve_targets(cfg):
+            for who, open_url in watcher._reserve_targets(cfg,
+                                                          include_off=True):
                 open_url(watcher.reserve.LOGIN_URL)
 
     def test_reserve(self):
