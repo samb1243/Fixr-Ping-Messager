@@ -457,6 +457,10 @@ def run_loop(cfg, stop_event=None, write_pid=True):
     if write_pid:
         pid_file.write_text(str(os.getpid()))
     print(f"Watching {enabled} page(s), every {interval}s.")
+    if cfg.get("open_browser_on_change", False):
+        for name in cfg.get("browsers", DEFAULT_BROWSERS):
+            exe = find_browser(name)
+            print(f"  browser '{name}': {exe or 'NOT FOUND'}")
     backoff = interval
     checks = 0
     last_heartbeat = time.monotonic()
