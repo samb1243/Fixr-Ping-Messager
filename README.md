@@ -56,7 +56,7 @@ CLI share a single-instance guard).
   "ntfy": { "server": "https://ntfy.sh", "topic": "fixr-watch-50e9aec6" },
   "interval_seconds": 1,
   "open_browser_on_change": true,
-  "browsers": ["chrome", "opera gx"],
+  "browsers": ["chrome"],
   "pages": [
     {
       "name": "Timepiece (Fixr organiser)",
@@ -93,17 +93,12 @@ open the new event: a small Chrome extension puts **one ticket in your basket**
 for you, in a normal tab of your everyday Chrome (so it uses your normal Fixr
 login). You then pay in that tab yourself.
 
-1. **Install the extension once in each browser** listed in `browsers`
-   (Chrome and Opera GX by default):
-   - **Chrome:** go to `chrome://extensions`, turn on **Developer mode** (top
-     right), click **Load unpacked** and pick the `chrome_extension` folder
-     inside this project.
-   - **Opera GX:** go to `opera://extensions`, turn on **Developer mode**,
-     click **Load unpacked** and pick the same `chrome_extension` folder.
-
-   "Fixr Auto-Reserve" appears in the list. After a `git pull` that changes
-   it, click its reload ↻ icon in each browser.
-2. Be logged into Fixr in each browser as normal.
+1. **Install the extension once in Chrome:** go to `chrome://extensions`, turn
+   on **Developer mode** (top right), click **Load unpacked** and pick the
+   `chrome_extension` folder inside this project. "Fixr Auto-Reserve" appears
+   in the list. After a `git pull` that changes it, click its reload ↻ icon.
+   (Other Chromium browsers listed in `browsers`, e.g. `"edge"`, need it too.)
+2. Be logged into Fixr in Chrome as normal.
 3. When a new Timepiece event appears, the app opens its ticket page in every
    browser at once, and in each one the extension independently tries one ticket per time slot in this order:
    10:00–10:30pm, 9:30pm, 9:00pm, 8:30pm, 8:00–8:30pm, then later slots
@@ -112,7 +107,8 @@ login). You then pay in that tab yourself.
    the next one. If it can't confirm the removal, it stops and pings you.
 5. When one is reserved you get an urgent phone ping saying which browser has
    it, and that tab stays on the basket. Both browsers can end up holding a
-   ticket: pay in one and press **Cancel** in the other. **Pay there before the basket timer runs out.**
+   ticket if you list more than one: pay in one and press **Cancel** in the
+   other. **Pay there before the basket timer runs out.**
 
 **Turning it on/off:** tick or untick **Auto-reserve tickets** in the app. It
 takes effect straight away, even while watching. When it's off, new events just

@@ -5,7 +5,7 @@
   },
   "interval_seconds": 1,
   "open_browser_on_change": true,
-  "browsers": ["chrome", "opera gx"],
+  "browsers": ["chrome"],
   "auto_reserve": {
     "enabled": true,
     "preferred_start_times": ["22:00", "21:30", "21:00", "20:30", "20:00"],
