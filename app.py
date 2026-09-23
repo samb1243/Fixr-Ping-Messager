@@ -101,20 +101,23 @@ class App(tk.Tk):
         self.status_lbl.pack(side="left", padx=(8, 0))
 
         btns = ttk.Frame(self)
-        btns.pack(fill="x", pady=(2, 12))
+        btns.pack(fill="x", pady=(2, 8))
         self.start_btn = ttk.Button(btns, text="▶  Start watching",
                                     command=self.start)
         self.start_btn.pack(side="left", ipadx=12, ipady=6)
         self.stop_btn = ttk.Button(btns, text="■  Stop", command=self.stop,
                                    state="disabled")
         self.stop_btn.pack(side="left", padx=(10, 0), ipadx=12, ipady=6)
-        ttk.Button(btns, text="Test browsers", command=self.test_browsers
-                   ).pack(side="right", ipadx=8, ipady=6)
-        ttk.Button(btns, text="Log in to Fixr", command=self.fixr_login
-                   ).pack(side="right", padx=(0, 8), ipadx=8, ipady=6)
-        ttk.Button(btns, text="Test auto-reserve",
-                   command=self.test_reserve
-                   ).pack(side="right", padx=(0, 8), ipadx=8, ipady=6)
+
+        # Extra tools on their own row, so they never get squeezed off-screen.
+        tools = ttk.Frame(self)
+        tools.pack(fill="x", pady=(0, 12))
+        ttk.Button(tools, text="Log in to Fixr", command=self.fixr_login
+                   ).pack(side="left", ipadx=8, ipady=3)
+        ttk.Button(tools, text="Test auto-reserve", command=self.test_reserve
+                   ).pack(side="left", padx=(8, 0), ipadx=8, ipady=3)
+        ttk.Button(tools, text="Test browsers", command=self.test_browsers
+                   ).pack(side="left", padx=(8, 0), ipadx=8, ipady=3)
 
         ttk.Label(self, text="Watching", font=("Segoe UI", 9, "bold")).pack(
             anchor="w")
