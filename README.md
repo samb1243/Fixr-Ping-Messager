@@ -107,6 +107,10 @@ login). You then pay in that tab yourself.
 5. When one is reserved you get an urgent phone ping and the tab stays on the
    basket. **Pay there before the basket timer runs out.**
 
+**Turning it on/off:** tick or untick **Auto-reserve tickets** in the app. It
+takes effect straight away, even while watching. When it's off, new events just
+open in your browser as before.
+
 If tickets aren't on sale yet it keeps reloading for `wait_for_tickets_minutes`.
 Every step shows in the app's activity feed as `[reserve] …` lines. The
 button/label matching is a best guess at Fixr's page, so if it does the wrong

@@ -112,6 +112,11 @@ class App(tk.Tk):
         # Extra tools on their own row, so they never get squeezed off-screen.
         tools = ttk.Frame(self)
         tools.pack(fill="x", pady=(0, 12))
+        self.auto_var = tk.BooleanVar(value=self._auto_reserve_on())
+        ttk.Checkbutton(tools, text="Auto-reserve tickets",
+                        variable=self.auto_var,
+                        command=self.toggle_auto_reserve
+                        ).pack(side="left", padx=(0, 12))
         ttk.Button(tools, text="Log in to Fixr", command=self.fixr_login
                    ).pack(side="left", ipadx=8, ipady=3)
         ttk.Button(tools, text="Test auto-reserve", command=self.test_reserve
@@ -206,6 +211,19 @@ class App(tk.Tk):
         self._set_watching(True)
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
+
+    def _auto_reserve_on(self):
+        try:
+            return watcher.reserve.settings(watcher.load_config())["enabled"]
+        except Exception:
+            return False
+
+    def toggle_auto_reserve(self):
+        on = self.auto_var.get()
+        watcher.reserve.set_enabled(on)
+        print("Auto-reserve is now " + (
+            "ON - new Timepiece events get a ticket reserved." if on else
+            "OFF - new events just open in your browser."))
 
     def fixr_login(self):
         try:

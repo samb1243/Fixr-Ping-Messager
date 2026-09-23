@@ -73,9 +73,32 @@ FAIL_TEXT = re.compile(r"sold out|no longer available|not available|"
 SOLD_OUT = re.compile(r"sold out|unavailable|not available|off sale", re.I)
 
 
+# The app's on/off switch. Kept out of config.json (which is in git) so that
+# flipping it never blocks a `git pull`.
+APP_SETTINGS = ROOT / "state" / "app_settings.json"
+
+
+def _app_settings():
+    try:
+        return json.loads(APP_SETTINGS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def set_enabled(on):
+    """Turn auto-reserve on/off (the app's switch)."""
+    data = _app_settings()
+    data["auto_reserve_enabled"] = bool(on)
+    APP_SETTINGS.parent.mkdir(exist_ok=True)
+    APP_SETTINGS.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
 def settings(cfg):
     s = dict(DEFAULTS)
     s.update(cfg.get("auto_reserve") or {})
+    local = _app_settings()
+    if "auto_reserve_enabled" in local:
+        s["enabled"] = local["auto_reserve_enabled"]
     return s
 
 
