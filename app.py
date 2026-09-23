@@ -126,7 +126,6 @@ class App(tk.Tk):
 
         # One tick box per Fixr account (from "accounts" in config.json).
         self.account_vars = {}
-        self.account_boxes = []
         try:
             accounts = watcher.load_config().get("accounts") or []
         except Exception:
@@ -145,8 +144,6 @@ class App(tk.Tk):
                     command=lambda n=name, v=var: self.toggle_account(n, v))
                 box.pack(side="left", padx=(0, 10))
                 self.account_vars[name] = var
-                self.account_boxes.append(box)
-            self._update_account_boxes()
 
         ttk.Label(self, text="Watching", font=("Segoe UI", 9, "bold")).pack(
             anchor="w")
@@ -247,19 +244,12 @@ class App(tk.Tk):
         watcher.reserve.set_enabled(on)
         print("Auto-reserve is now " + (
             "ON - new Timepiece events get a ticket reserved." if on else
-            "OFF - new events just open in your browser."))
-        self._update_account_boxes()
+            "OFF - new events just open in the ticked accounts."))
 
     def toggle_account(self, name, var):
         on = var.get()
         watcher.reserve.set_account_enabled(name, on)
         print(f"Auto-reserve for {name} is now {'ON' if on else 'OFF'}.")
-
-    def _update_account_boxes(self):
-        # Account boxes only matter while auto-reserve itself is on.
-        state = "!disabled" if self.auto_var.get() else "disabled"
-        for box in self.account_boxes:
-            box.state([state])
 
     def fixr_login(self):
         try:

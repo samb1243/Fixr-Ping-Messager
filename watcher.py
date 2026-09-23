@@ -537,8 +537,8 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
     auto_reserve = (cfg is not None and page_cfg.get("auto_reserve")
                     and reserve.settings(cfg)["enabled"])
     if auto_reserve and not _reserve_targets(cfg):
-        print("  (auto-reserve is on but every account is switched off - "
-              "just opening it)")
+        print("  (auto-reserve is on but every account is unticked - "
+              "just opening it in Chrome)")
         auto_reserve = False
     if auto_reserve:
         # The reserve window opens each new event itself, so don't also open
@@ -548,9 +548,17 @@ def check_page(page_cfg, browser, ntfy, log_nochange=True, open_browser=False,
                 reserve.start(_item_url(it), _item_label(it), cfg,
                               _reserve_notifier(ntfy), _reserve_targets(cfg))
     elif open_browser:
+        # With accounts set up, just open it (no reserving) in each ticked
+        # account's Chrome profile; otherwise in the normal browser(s).
+        account_targets = (_reserve_targets(cfg)
+                           if cfg is not None and cfg.get("accounts") else [])
         for target in open_targets:
             try:
-                open_in_browsers(target, browsers)
+                if account_targets:
+                    for who, open_url in account_targets:
+                        open_url(target)
+                else:
+                    open_in_browsers(target, browsers)
             except Exception as e:
                 print(f"  ! could not open browser: {e}")
     try:

@@ -140,10 +140,16 @@ out. **Log in to Fixr** opens the login page in every account's profile, and
 takes effect straight away, even while watching. When it's off, new events just
 open in your browser as before.
 
-Each account also has its own tick box on the **Accounts:** row. Untick one to
-leave that account out (its window won't open). These only apply while
-**Auto-reserve tickets** is ticked; if every account is unticked, new events
-just open normally. **Log in to Fixr** still opens every account.
+Each account also has its own tick box on the **Accounts:** row, which picks
+which accounts' Chrome windows open for a new event:
+
+- **Auto-reserve ticked:** each ticked account opens the event and reserves.
+- **Auto-reserve unticked:** each ticked account just opens the event's ticket
+  page (nothing is reserved), so you can go in by hand on whichever accounts
+  you want.
+
+If every account is unticked, new events open in your normal Chrome instead.
+**Log in to Fixr** always opens every account.
 
 If tickets aren't on sale yet it keeps reloading for `wait_for_tickets_minutes`.
 Every step shows in the app's activity feed as `[reserve] …` lines. The
