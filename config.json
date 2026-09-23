@@ -8,7 +8,9 @@
   "browsers": ["chrome"],
   "accounts": [
     { "name": "Account 1", "chrome_profile": "Default" },
-    { "name": "Account 2", "chrome_profile": "Profile 1" }
+    { "name": "Account 2", "chrome_profile": "Profile 1" },
+    { "name": "Account 3", "chrome_profile": "Profile 2" },
+    { "name": "Account 4", "chrome_profile": "Profile 3" }
   ],
   "auto_reserve": {
     "enabled": true,
