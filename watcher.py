@@ -58,15 +58,39 @@ DEFAULT_BROWSERS = ["chrome", "edge"]
 _BROWSER_CANDIDATES = {
     "chrome": {
         "win": [r"Google\Chrome\Application\chrome.exe"],
+        "app_path": "chrome.exe",
         "mac": ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"],
         "path": ["google-chrome", "google-chrome-stable", "chrome", "chromium"],
     },
     "edge": {
         "win": [r"Microsoft\Edge\Application\msedge.exe"],
+        "app_path": "msedge.exe",
+        # Built-in Windows link that always opens Edge, used if msedge.exe
+        # can't be located.
+        "protocol": "microsoft-edge:",
         "mac": ["/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"],
         "path": ["msedge", "microsoft-edge", "microsoft-edge-stable"],
     },
 }
+
+
+def _registry_app_path(exe_name):
+    """Look up a browser's install path in the Windows 'App Paths' registry."""
+    try:
+        import winreg
+    except ImportError:
+        return None
+    key_path = (r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths" + "\\"
+                + exe_name)
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            with winreg.OpenKey(hive, key_path) as key:
+                path = winreg.QueryValue(key, None).strip('"')
+            if os.path.isfile(path):
+                return path
+        except OSError:
+            pass
+    return None
 
 
 def find_browser(name):
@@ -76,11 +100,17 @@ def find_browser(name):
         # Not a known name -- treat it as a path or command on PATH.
         return name if os.path.isfile(name) else shutil.which(name)
     if sys.platform == "win32":
-        for env in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"):
-            base = os.environ.get(env)
+        bases = [os.environ.get(env) for env in
+                 ("PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMW6432",
+                  "LOCALAPPDATA")]
+        bases += [r"C:\Program Files", r"C:\Program Files (x86)"]
+        for base in bases:
             for rel in cands["win"]:
                 if base and os.path.isfile(os.path.join(base, rel)):
                     return os.path.join(base, rel)
+        found = _registry_app_path(cands["app_path"])
+        if found:
+            return found
     elif sys.platform == "darwin":
         for path in cands["mac"]:
             if os.path.isfile(path):
@@ -97,13 +127,18 @@ def open_in_browsers(url, browsers):
     opened = False
     for name in browsers:
         exe = find_browser(name)
-        if not exe:
-            print(f"  ! {name} not found, skipping")
-            continue
+        protocol = _BROWSER_CANDIDATES.get(name.lower(), {}).get("protocol")
         try:
-            subprocess.Popen([exe, url], stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
-            print(f"  -> opened {url} in {name}")
+            if exe:
+                subprocess.Popen([exe, url], stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+                print(f"  -> opened {url} in {name} ({exe})")
+            elif protocol and sys.platform == "win32":
+                os.startfile(protocol + url)
+                print(f"  -> opened {url} in {name} (via {protocol})")
+            else:
+                print(f"  ! {name} not found, skipping")
+                continue
             opened = True
         except Exception as e:
             print(f"  ! could not open {name}: {e}")
